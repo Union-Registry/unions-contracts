@@ -5,10 +5,8 @@ libs = ['lib']
 gas_report = ["Rings"]
 solc = "0.8.19"
 remappings = [
-    "@thirdweb-dev/=node_modules/@thirdweb-dev/",
-    "@openzeppelin/=lib/openzeppelin-contracts/",
+    "@openzeppelin/=lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/",
     "@openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
-    "eas-contracts/=eas-contracts/",
 ]
 
 
