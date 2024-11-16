@@ -2,10 +2,10 @@
 // Compatible with OpenZeppelin Contracts ^5.0.0
 pragma solidity ^0.8.22;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155BurnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin-contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
+import "@openzeppelin-contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin-contracts-upgradeable/token/ERC1155/extensions/ERC1155BurnableUpgradeable.sol";
+import "@openzeppelin-contracts-upgradeable/proxy/utils/Initializable.sol";
 
 contract MyToken is Initializable, ERC1155Upgradeable, AccessControlUpgradeable, ERC1155BurnableUpgradeable {
     bytes32 public constant URI_SETTER_ROLE = keccak256("URI_SETTER_ROLE");
@@ -16,7 +16,7 @@ contract MyToken is Initializable, ERC1155Upgradeable, AccessControlUpgradeable,
         _disableInitializers();
     }
 
-    function initialize(address defaultAdmin, address minter) initializer public {
+    function initialize(address defaultAdmin, address minter) public initializer {
         __ERC1155_init("");
         __AccessControl_init();
         __ERC1155Burnable_init();
@@ -29,10 +29,7 @@ contract MyToken is Initializable, ERC1155Upgradeable, AccessControlUpgradeable,
         _setURI(newuri);
     }
 
-    function mint(address account, uint256 id, uint256 amount, bytes memory data)
-        public
-        onlyRole(MINTER_ROLE)
-    {
+    function mint(address account, uint256 id, uint256 amount, bytes memory data) public onlyRole(MINTER_ROLE) {
         _mint(account, id, amount, data);
     }
 
