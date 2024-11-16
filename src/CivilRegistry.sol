@@ -9,7 +9,7 @@ import {ISP} from "@ethsign/src/interfaces/ISP.sol";
 
 // on-chain NFT contract UnionRings which civil registry has permissions to mint from directly and transfer to Union recipients
 interface IUnionRings {
-    function mint(address account, uint256 id, bytes memory data) external;
+    function mint(address account, uint256 id, uint256 amount, bytes memory data) external;
 
     function safeTransferFrom(address from, address to, uint256 id, uint256 amount, bytes memory data) external;
 }
@@ -33,13 +33,14 @@ contract CivilRegistry is OwnableUpgradeable, ERC1155Holder {
 
     error NotParticipant(uint256 unionId);
     error InvalidSecret(uint256 unionId);
+    error UnionDoesNotExist(uint256 unionId);
 
     // struct containing all information relating to a union
     /// @param participants array of addresses of the participants in the union
     /// @param vows array of vows made by the participants
     /// @param ringIds array of ringIds of the NFT UnionRings that are created and minted to participants in the union
     /// @param accepted boolean indicating whether the union has been accepted by the proposee
-    /// @param attestationUid bytes32 uid of the attestation created by the EAS contract
+    /// @param attestationUid bytes32 uid of the attestation created by the sign protocol contract
     /// @param secretHash bytes32 hash of the secret phrase made by the proposer that is hashed
     struct Union {
         address[] participants;
@@ -53,36 +54,37 @@ contract CivilRegistry is OwnableUpgradeable, ERC1155Holder {
     // Union[] public unions; allows mapping and refering a given union by a number ID
     mapping(uint256 => Union) public unions;
 
-    constructor() {
-        _disableInitializers();
-    }
+    // constructor() {
+    //     _disableInitializers();
+    // }
 
-    function initialize(address _ringsContract  , uint64 _schema) public initializer {
+    function initialize(address _ringsContract  , uint64 _schema, address _spInstanceAddress) public initializer {
         __Ownable_init(msg.sender);
         ringsContract = IUnionRings(_ringsContract);
         schema = _schema;
+        spInstance = ISP(_spInstanceAddress);
     }
 
     // intenral function that creates new Union and pushes the proposer's data into the struct
     function _propose(uint256 tokenId, string memory vow, bytes32 secretHash) internal {
         Union storage union = unions[unionCount];
-        union.participants.push(msg.sender);
-        union.vows.push(vow);
-        union.ringIds.push(tokenId);
-        union.secretHash == secretHash;
+        union.participants = new address[](2); // Initialize the participants array with a size of 1
+        union.vows = new string[](2); // Initialize the vows array with a size of 1
+        union.ringIds = new uint256[](2); // Initialize the ringIds array with a size of 1
+        union.participants[0] = msg.sender;
+        union.vows[0] = vow;
+        union.ringIds[0] = tokenId;
+        union.secretHash = secretHash;
         union.accepted = false;
-        emit UnionProposed(unionCount);
-        unionCount++;
+    emit UnionProposed(unionCount);
+    unionCount++;
     }
-    // internal function which accepts a union and creates an attestation in the EAS contract and pushes proposee's data into the Union struct
+    // internal function which accepts a union and creates an attestation in the sign protocol contract and pushes proposee's data into the Union struct
 
     function _accept(uint256 unionId, uint256 tokenId, string memory vow, string memory secret) internal {
         Union storage union = unions[unionId];
         if (keccak256(abi.encodePacked(secret)) != union.secretHash) {
             revert InvalidSecret(unionId);
-        }
-        if (union.participants[1] != msg.sender) {
-            revert NotParticipant(unionId);
         }
         bytes[] memory recipients = new bytes[](2);
         recipients[0] = abi.encode(union.participants[0]);
@@ -101,12 +103,12 @@ contract CivilRegistry is OwnableUpgradeable, ERC1155Holder {
         });
         uint64 attestationId = spInstance.attest(a, "", "", "");
 
-        union.accepted = true;
-        union.participants.push(msg.sender);
-        union.ringIds.push(tokenId);
-        union.vows.push(vow);
-        union.attestationUid = attestationId;
-        emit UnionAccepted(unionId, attestationId);
+    union.accepted = true;
+    union.participants[1] = msg.sender;
+    union.ringIds[1] = tokenId;
+    union.vows[1] = vow;
+    union.attestationUid = attestationId;
+    emit UnionAccepted(unionId, attestationId);
     }
     // external function that allows a user to propose a union
     // nft is minted from rings contract and held by this smart contract until union is accepted by proposee
@@ -114,17 +116,20 @@ contract CivilRegistry is OwnableUpgradeable, ERC1155Holder {
     function proposeUnion(uint256 tokenId, string memory vow, bytes32 secretHash) public payable {
         uint256 currentUnionId = unionCount;
         _propose(tokenId, vow, secretHash);
-        ringsContract.mint(address(this), unions[currentUnionId].ringIds[0], "");
+        ringsContract.mint(address(this), unions[currentUnionId].ringIds[0], 1, "");
     }
 
     // external function that allows a user to accept a union
     // nft is transferred from this smart contract to the proposee and a new nft is minted and transferred to the proposer
     // update union state to accepted
     function acceptUnion(uint256 unionId, uint256 tokenId, string memory vow, string memory secret) public {
+        if (unionId >= unionCount) {
+            revert UnionDoesNotExist(unionId);
+        }
         Union storage union = unions[unionId];
         _accept(unionId, tokenId, vow, secret);
         ringsContract.safeTransferFrom(address(this), union.participants[1], union.ringIds[0], 1, "");
-        ringsContract.mint(union.participants[0], union.ringIds[1], "");
+        ringsContract.mint(union.participants[0], union.ringIds[1], 1, "");
     }
 
     // helper function to get union data
@@ -147,6 +152,10 @@ contract CivilRegistry is OwnableUpgradeable, ERC1155Holder {
 
     function setRingsContract(address _ringsContract) public onlyOwner {
         ringsContract = IUnionRings(_ringsContract);
+    }
+
+    function setSpContract(address _spInstanceAddress) public onlyOwner {
+        spInstance = ISP(_spInstanceAddress);
     }
 
 }

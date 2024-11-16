@@ -11,8 +11,9 @@ import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
 
 contract testDeploy is Script {
+    address scrollSepoliaSP = 0x4e4af2a21ebf62850fD99Eb6253E1eFBb56098cD;
     TransparentUpgradeableProxy ringSelectorProxy;
-    UnionRings ringSelector;
+    UnionRings unionRings;
     CivilRegistry civilRegistry;
     ProxyAdmin proxyAdmin;
     string private ringData = "";
@@ -44,11 +45,13 @@ contract testDeploy is Script {
 
     // deploy civil registry contract
     address civilRegistryProxy = Upgrades.deployTransparentProxy(
-    "CivilRegistry.sol",
+    "CivilRegistry.sol:CivilRegistry",
     msg.sender,
-    abi.encodeCall(CivilRegistry.initialize, (unionRingsProxy, schema))
+    abi.encodeCall(CivilRegistry.initialize, (address(unionRingsProxy), schema, scrollSepoliaSP))
 );
     console.log("UnionRings deployed at: ", unionRingsProxy);
     console.log("CivilRegistry deployed at: ", civilRegistryProxy);
-}
+    UnionRings(unionRingsProxy).grantRole(keccak256("MINTER_ROLE"), civilRegistryProxy);
+}  
+
     }

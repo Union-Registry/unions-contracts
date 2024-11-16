@@ -9,5 +9,8 @@ remappings = [
     "@ethsign/=lib/sign-protocol-evm/",
     "openzeppelin-foundry-upgrades/=lib/openzeppelin-foundry-upgrades/src/",
 ]
+ffi = true
 ast = true
+build_info = true
+extra_output = ["storageLayout"]
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
