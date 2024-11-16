@@ -2,7 +2,8 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
+import "@openzeppelin/token/ERC1155/utils/ERC1155Holder.sol";
+
 import {
     IEAS,
     AttestationRequest,
@@ -14,14 +15,6 @@ import {NO_EXPIRATION_TIME, EMPTY_UID} from "eas-contracts/contracts/Common.sol"
 
 // on-chain NFT contract UnionRings which civil registry has permissions to mint from directly and transfer to Union recipients
 interface IUnionRings {
-    function addRingAndMint(
-        string memory name,
-        string memory description,
-        string memory image,
-        address account,
-        bool isUnique
-    ) external returns (uint256);
-
     function mint(address account, uint256 id, bytes memory data) external;
 
     function safeTransferFrom(address from, address to, uint256 id, uint256 amount, bytes memory data) external;
@@ -34,7 +27,7 @@ interface IUnionRings {
 // same with proposee, pays gas fees to mint their NFT, which can be expensive if it is a new unique ring.
 contract CivilRegistry is OwnableUpgradeable, ERC1155Holder {
     address[] public exampleArray;
-    IEAS public easContract;
+    IAttestationRegistry public attestationRegistry;
     IUnionRings public ringsContract;
     uint256 private unionCount;
     bytes32 private schema;
@@ -154,7 +147,7 @@ contract CivilRegistry is OwnableUpgradeable, ERC1155Holder {
         while (i < participants) {
             if (msg.sender == union.participants[i]) {
                 union.accepted = false;
-                easContract.revoke(
+                attestationRegistry.revoke(
                     RevocationRequest({
                         schema: schema,
                         data: RevocationRequestData({uid: union.attestationUid, value: 0})
